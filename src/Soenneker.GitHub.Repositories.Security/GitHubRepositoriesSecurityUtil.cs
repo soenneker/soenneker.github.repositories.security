@@ -194,17 +194,32 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
     {
         try
         {
-            List<CodeScanningAlertItems> alerts = await GetCodeScanningAlerts(owner, name, cancellationToken)
-                .NoSync();
+            GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken).NoSync();
+            var page = 1;
+            List<CodeScanningAlertItems>? alerts;
 
-            if (alerts.Count == 0)
-                return;
-
-            foreach (CodeScanningAlertItems alert in alerts)
+            do
             {
-                _logger.LogInformation("{Repo}: [CodeScanning] #{Number} rule: {RuleId}, severity: {Severity}, created: {CreatedAt}", name, alert.Number,
-                    alert.Rule?.Id, alert.Rule?.SecuritySeverityLevel?.ToString(), alert.CreatedAt);
-            }
+                alerts = await client.Repos[owner][name]
+                    .CodeScanning.Alerts.GetAsync(config =>
+                    {
+                        config.QueryParameters.PerPage = 100;
+                        config.QueryParameters.Page = page;
+                        config.QueryParameters.State = CodeScanningAlertStateQuery.Open;
+                    }, cancellationToken)
+                    .NoSync();
+
+                if (alerts is not { Count: > 0 })
+                    break;
+
+                foreach (CodeScanningAlertItems alert in alerts)
+                {
+                    _logger.LogInformation("{Repo}: [CodeScanning] #{Number} rule: {RuleId}, severity: {Severity}, created: {CreatedAt}", name, alert.Number,
+                        alert.Rule?.Id, alert.Rule?.SecuritySeverityLevel?.ToString(), alert.CreatedAt);
+                }
+
+                page++;
+            } while (alerts.Count == 100 && !cancellationToken.IsCancellationRequested);
         }
         catch (Exception ex)
         {
@@ -216,17 +231,32 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
     {
         try
         {
-            List<SecretScanningAlert> alerts = await GetSecretScanningAlerts(owner, name, "open", cancellationToken)
-                .NoSync();
+            GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken).NoSync();
+            var page = 1;
+            List<SecretScanningAlert>? alerts;
 
-            if (alerts.Count == 0)
-                return;
-
-            foreach (SecretScanningAlert alert in alerts)
+            do
             {
-                _logger.LogInformation("{Repo}: [SecretScanning] #{Number} secret type: {SecretType}, created: {CreatedAt}", name, alert.Number,
-                    alert.SecretType, alert.CreatedAt);
-            }
+                alerts = await client.Repos[owner][name]
+                    .SecretScanning.Alerts.GetAsync(config =>
+                    {
+                        config.QueryParameters.PerPage = 100;
+                        config.QueryParameters.Page = page;
+                        config.QueryParameters.State = GetStateQueryParameterType.Open;
+                    }, cancellationToken)
+                    .NoSync();
+
+                if (alerts is not { Count: > 0 })
+                    break;
+
+                foreach (SecretScanningAlert alert in alerts)
+                {
+                    _logger.LogInformation("{Repo}: [SecretScanning] #{Number} secret type: {SecretType}, created: {CreatedAt}", name, alert.Number,
+                        alert.SecretType, alert.CreatedAt);
+                }
+
+                page++;
+            } while (alerts.Count == 100 && !cancellationToken.IsCancellationRequested);
         }
         catch (Exception ex)
         {
