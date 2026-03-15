@@ -49,50 +49,40 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install dependencies with retry
-        shell: bash
-        run: |
-          retries=5
-          base_wait_time=15
-          exponent=2
+      - name: Restore tests
+        run: dotnet restore test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj --verbosity minimal
 
-          for i in $(seq 1 $retries); do
-            echo "::group::dotnet restore (attempt $i/$retries)"
-            if dotnet restore -v detailed; then
-              echo "::endgroup::"
-              echo "✅ dotnet restore succeeded on attempt $i."
-              break
-            else
-              echo "::endgroup::"
-              if [ "$i" -lt "$retries" ]; then
-                wait_time=$(( base_wait_time * (exponent ** (i - 1)) ))
-                echo "❌ dotnet restore failed (attempt $i). Retrying in ${wait_time}s…"
-                sleep "$wait_time"
-              else
-                echo "::error::dotnet restore failed after $retries attempts"
-                exit 1
-              fi
-            fi
-          done
-
-      - name: Build
-        run: dotnet build src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj --configuration Release --no-restore
+      - name: Build tests
+        run: dotnet build test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj --configuration Release --no-restore --verbosity minimal
 
       - name: Test
-        run: dotnet test test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj --no-restore --verbosity normal
+        run: dotnet test test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal
+
+
+      - name: Restore library
+        run: dotnet restore src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj --verbosity minimal
+
+      - name: Build library
+        run: dotnet build src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj --configuration Release --no-restore --verbosity minimal
 
       - name: Pack
         shell: bash
         run: |
           mkdir -p artifacts
-          dotnet pack src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj --no-build --configuration Release --output ./artifacts
+          dotnet pack src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj \
+            --configuration Release \
+            --no-build \
+            --no-restore \
+            --output ./artifacts
 
       - name: Publish to NuGet
         shell: bash
         run: |
           set -euo pipefail
+
           for i in 1 2; do
             output_file="$(mktemp)"
+
             set +e
             dotnet nuget push ./artifacts/*.nupkg \
               --source "https://api.nuget.org/v3/index.json" \
