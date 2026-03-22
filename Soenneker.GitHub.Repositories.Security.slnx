@@ -6,6 +6,10 @@
     <File Path=".github/workflows/build-and-test.yml" />
     <File Path=".github/workflows/publish-package.yml" />
   </Folder>
-  <Project Path="src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj" />
-  <Project Path="test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Soenneker.GitHub.Repositories.Security/Soenneker.GitHub.Repositories.Security.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Soenneker.GitHub.Repositories.Security.Tests/Soenneker.GitHub.Repositories.Security.Tests.csproj" />
+  </Folder>
 </Solution>
