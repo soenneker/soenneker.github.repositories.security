@@ -1,20 +1,19 @@
 using Soenneker.GitHub.Repositories.Security.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.GitHub.Repositories.Security.Tests;
 
-[Collection("Collection")]
-public sealed class GitHubRepositoriesSecurityUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public sealed class GitHubRepositoriesSecurityUtilTests : HostedUnitTest
 {
     private readonly IGitHubRepositoriesSecurityUtil _util;
 
-    public GitHubRepositoriesSecurityUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public GitHubRepositoriesSecurityUtilTests(Host host) : base(host)
     {
         _util = Resolve<IGitHubRepositoriesSecurityUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
