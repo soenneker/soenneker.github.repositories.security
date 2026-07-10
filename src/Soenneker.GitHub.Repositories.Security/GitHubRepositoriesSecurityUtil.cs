@@ -76,8 +76,8 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
                                                               config.QueryParameters.PerPage = 100;
                                                               if (!string.IsNullOrEmpty(state))
                                                                   config.QueryParameters.State = state == "resolved"
-                                                                      ? GetStateQueryParameterType.Resolved
-                                                                      : GetStateQueryParameterType.Open;
+                                                                      ? SecretScanningAlertStateEnum.Resolved
+                                                                      : SecretScanningAlertStateEnum.Open;
                                                           }, cancellationToken)
                                                           .NoSync();
 
@@ -242,7 +242,7 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
                     {
                         config.QueryParameters.PerPage = 100;
                         config.QueryParameters.Page = page;
-                        config.QueryParameters.State = GetStateQueryParameterType.Open;
+                        config.QueryParameters.State = SecretScanningAlertStateEnum.Open;
                     }, cancellationToken)
                     .NoSync();
 
