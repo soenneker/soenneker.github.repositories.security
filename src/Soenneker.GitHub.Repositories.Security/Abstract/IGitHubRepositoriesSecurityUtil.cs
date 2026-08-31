@@ -7,18 +7,18 @@ using Soenneker.GitHub.OpenApiClient.Models;
 namespace Soenneker.GitHub.Repositories.Security.Abstract;
 
 /// <summary>
-/// A utility library for GitHub Repository Security related operations
+/// Retrieves and logs Dependabot, code-scanning, and secret-scanning alerts from GitHub repositories.
 /// </summary>
 public interface IGitHubRepositoriesSecurityUtil
 {
     /// <summary>
-    /// Retrieves all Dependabot alerts for the specified repository.
+    /// Retrieves up to 100 Dependabot alerts for the specified repository.
     /// </summary>
     /// <param name="owner">The owner of the repository.</param>
     /// <param name="name">The name of the repository.</param>
     /// <param name="state">Optional state filter (e.g. "open"). If null, returns all states.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A list of Dependabot alerts.</returns>
+    /// <returns>A list containing up to 100 Dependabot alerts.</returns>
     ValueTask<List<DependabotAlert>> GetDependabotAlerts(string owner, string name, string? state = "open",
         CancellationToken cancellationToken = default);
 

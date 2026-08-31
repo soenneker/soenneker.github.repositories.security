@@ -6,7 +6,7 @@ using Soenneker.GitHub.Repositories.Security.Abstract;
 namespace Soenneker.GitHub.Repositories.Security.Registrars;
 
 /// <summary>
-/// A utility library for GitHub Repository Security related operations
+/// Registers services for retrieving and logging GitHub repository security alerts.
 /// </summary>
 public static class GitHubRepositoriesSecurityUtilRegistrar
 {

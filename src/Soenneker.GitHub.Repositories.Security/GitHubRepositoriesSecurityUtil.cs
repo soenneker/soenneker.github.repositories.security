@@ -9,13 +9,11 @@ using Soenneker.GitHub.Repositories.Abstract;
 using Soenneker.GitHub.Repositories.Security.Abstract;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Soenneker.GitHub.Repositories.Security;
 
-/// <inheritdoc cref="IGitHubRepositoriesSecurityUtil"/>
 public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurityUtil
 {
     private readonly ILogger<GitHubRepositoriesSecurityUtil> _logger;
@@ -36,16 +34,14 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
         GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken)
                                                             .NoSync();
 
-        List<DependabotAlert>? response = await client.Repos[owner][name]
-                                                      .Dependabot.Alerts.GetAsync(config =>
-                                                      {
-                                                          config.QueryParameters.PerPage = 100;
-                                                          if (!string.IsNullOrEmpty(state))
-                                                              config.QueryParameters.State = state;
-                                                      }, cancellationToken)
-                                                      .NoSync();
+        List<DependabotAlert>? response = await client.Repos[owner][name].Dependabot.Alerts.GetAsync(config =>
+        {
+            config.QueryParameters.PerPage = 100;
+            if (!string.IsNullOrEmpty(state))
+                config.QueryParameters.State = state;
+        }, cancellationToken).NoSync();
 
-        return response?.ToList() ?? [];
+        return response ?? [];
     }
 
     public async ValueTask<List<CodeScanningAlertItems>> GetCodeScanningAlerts(string owner, string name, CancellationToken cancellationToken = default)
@@ -53,15 +49,31 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
         GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken)
                                                             .NoSync();
 
-        List<CodeScanningAlertItems>? response = await client.Repos[owner][name]
-                                                             .CodeScanning.Alerts.GetAsync(config =>
-                                                             {
-                                                                 config.QueryParameters.PerPage = 100;
-                                                                 config.QueryParameters.State = CodeScanningAlertStateQuery.Open;
-                                                             }, cancellationToken)
-                                                             .NoSync();
+        var alerts = new List<CodeScanningAlertItems>();
+        var page = 1;
+        const int perPage = 100;
 
-        return response?.ToList() ?? [];
+        while (true)
+        {
+            List<CodeScanningAlertItems>? response = await client.Repos[owner][name].CodeScanning.Alerts.GetAsync(config =>
+            {
+                config.QueryParameters.Page = page;
+                config.QueryParameters.PerPage = perPage;
+                config.QueryParameters.State = CodeScanningAlertStateQuery.Open;
+            }, cancellationToken).NoSync();
+
+            if (response == null || response.Count == 0)
+                break;
+
+            alerts.AddRange(response);
+
+            if (response.Count < perPage)
+                break;
+
+            page++;
+        }
+
+        return alerts;
     }
 
     public async ValueTask<List<SecretScanningAlert>> GetSecretScanningAlerts(string owner, string name, string? state = "open",
@@ -70,18 +82,34 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
         GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken)
                                                             .NoSync();
 
-        List<SecretScanningAlert>? response = await client.Repos[owner][name]
-                                                          .SecretScanning.Alerts.GetAsync(config =>
-                                                          {
-                                                              config.QueryParameters.PerPage = 100;
-                                                              if (!string.IsNullOrEmpty(state))
-                                                                  config.QueryParameters.State = state == "resolved"
-                                                                      ? SecretScanningAlertStateEnum.Resolved
-                                                                      : SecretScanningAlertStateEnum.Open;
-                                                          }, cancellationToken)
-                                                          .NoSync();
+        var alerts = new List<SecretScanningAlert>();
+        var page = 1;
+        const int perPage = 100;
 
-        return response?.ToList() ?? [];
+        while (true)
+        {
+            List<SecretScanningAlert>? response = await client.Repos[owner][name].SecretScanning.Alerts.GetAsync(config =>
+            {
+                config.QueryParameters.Page = page;
+                config.QueryParameters.PerPage = perPage;
+                if (!string.IsNullOrEmpty(state))
+                    config.QueryParameters.State = string.Equals(state, "resolved", StringComparison.OrdinalIgnoreCase)
+                        ? SecretScanningAlertStateEnum.Resolved
+                        : SecretScanningAlertStateEnum.Open;
+            }, cancellationToken).NoSync();
+
+            if (response == null || response.Count == 0)
+                break;
+
+            alerts.AddRange(response);
+
+            if (response.Count < perPage)
+                break;
+
+            page++;
+        }
+
+        return alerts;
     }
 
     public async ValueTask LogAllSecurityAlerts(string owner, string name, CancellationToken cancellationToken = default)
@@ -184,6 +212,10 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
                     severity, summary ?? "(none)", alert.UpdatedAt);
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "{Repo}: Could not list Dependabot alerts (security features may be disabled)", name);
@@ -221,6 +253,10 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
                 page++;
             } while (alerts.Count == 100 && !cancellationToken.IsCancellationRequested);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "{Repo}: Could not list code scanning alerts (code scanning may be disabled)", name);
@@ -257,6 +293,10 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
 
                 page++;
             } while (alerts.Count == 100 && !cancellationToken.IsCancellationRequested);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
