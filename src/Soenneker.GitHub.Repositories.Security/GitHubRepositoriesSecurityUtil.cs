@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace Soenneker.GitHub.Repositories.Security;
 
+/// <inheritdoc cref="IGitHubRepositoriesSecurityUtil" />
 public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurityUtil
 {
     private readonly ILogger<GitHubRepositoriesSecurityUtil> _logger;
