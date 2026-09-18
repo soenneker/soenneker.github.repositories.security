@@ -7,10 +7,20 @@ using Soenneker.GitHub.OpenApiClient.Models;
 namespace Soenneker.GitHub.Repositories.Security.Abstract;
 
 /// <summary>
-/// Retrieves and logs Dependabot, code-scanning, and secret-scanning alerts from GitHub repositories.
+/// Manages repository push protection and retrieves and logs Dependabot, code-scanning, and secret-scanning alerts.
 /// </summary>
 public interface IGitHubRepositoriesSecurityUtil
 {
+    /// <summary>
+    /// Enables or disables secret scanning push protection for the specified repository.
+    /// </summary>
+    /// <param name="owner">The owner of the repository.</param>
+    /// <param name="name">The name of the repository.</param>
+    /// <param name="enable">True to enable push protection; false to disable it.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <remarks>Requires permission to update the repository's security settings. Other security settings are left unchanged.</remarks>
+    ValueTask TogglePushProtection(string owner, string name, bool enable, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Retrieves up to 100 Dependabot alerts for the specified repository.
     /// </summary>

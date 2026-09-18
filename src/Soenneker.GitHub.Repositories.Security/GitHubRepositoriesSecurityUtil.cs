@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.GitHub.Repositories.Security;
 
-/// <inheritdoc cref="IGitHubRepositoriesSecurityUtil" />
 public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurityUtil
 {
     private readonly ILogger<GitHubRepositoriesSecurityUtil> _logger;
@@ -27,6 +26,27 @@ public sealed class GitHubRepositoriesSecurityUtil : IGitHubRepositoriesSecurity
         _logger = logger;
         _gitHubClientUtil = gitHubClientUtil;
         _gitHubRepositoriesUtil = gitHubRepositoriesUtil;
+    }
+
+    public async ValueTask TogglePushProtection(string owner, string name, bool enable, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Toggling push protection for {Owner}/{Name}: {Enabled}", owner, name, enable);
+
+        GitHubOpenApiClient client = await _gitHubClientUtil.Get(cancellationToken).NoSync();
+        var requestBody = new ReposUpdateRequest
+        {
+            SecurityAndAnalysis = new ReposUpdateRequestSecurityAndAnalysis
+            {
+                SecretScanningPushProtection = new ReposUpdateRequestSecurityAndAnalysisSecretScanningPushProtection
+                {
+                    Status = enable ? "enabled" : "disabled"
+                }
+            }
+        };
+
+        await client.Repos[owner][name]
+                    .PatchAsync(requestBody, cancellationToken: cancellationToken)
+                    .NoSync();
     }
 
     public async ValueTask<List<DependabotAlert>> GetDependabotAlerts(string owner, string name, string? state = "open",
